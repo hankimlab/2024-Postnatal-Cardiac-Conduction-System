@@ -1,74 +1,11 @@
 ---
-title: "CCS_SupplementaryFig5_UMAPconstruction"
+title: "sFigure5_"
 output: html_document
-date: "2023-08-31"
-editor_options: 
-  chunk_output_type: console
+date: "2024-03-08"
 ---
 
-# Subcluster LNB-HIS-PBB
-```{r}
-Idents(ccs) <- ccs$global
-subset_prox_lnb2pbb <- subset(ccs, idents = "Proximal CCS")
-subset_prox_lnb2pbb <- NormalizeData(subset_prox_lnb2pbb)
-subset_prox_lnb2pbb <- FindVariableFeatures(subset_prox_lnb2pbb)
-subset_prox_lnb2pbb <- ScaleData(subset_prox_lnb2pbb, vars.to.regress = c('nCount_RNA', 'percent.mito'))
-subset_prox_lnb2pbb <- RunPCA(subset_prox_lnb2pbb)
-fig <- ElbowPlot(subset_prox_lnb2pbb, ndims = 50)
-```
-
-# Find appropriate clusters for lnb-pbb
-```{r}
-subset_prox_lnb2pbb <- RunUMAP(subset_prox_lnb2pbb, dims = 1:10)
-subset_prox_lnb2pbb <- FindNeighbors(subset_prox_lnb2pbb, dims = 1:10)
-subset_prox_lnb2pbb <- FindClusters(subset_prox_lnb2pbb, resolution = 0.6)
-DimPlot(subset_prox_lnb2pbb) & NoAxes()
-```
-
-# Re-label lnb-pbb clusters
-```{r}
-subset_prox_lnb2pbb <-
-  RenameIdents(
-    subset_prox_lnb2pbb,
-    "3" = "Lower nodal bundle",
-    "2" = "His bundle 1",
-    "1" = "His bundle 2",
-    "0" = "Proximal bundle branch"
-  )
-```
-
-# Obtain cell ids from from all subsetted data
-```{r}
-cells_san <- WhichCells(subset_nodes, idents = "SA node")
-cells_cavn <- WhichCells(subset_nodes, idents = "Compact AV node")
-cells_lnb <- WhichCells(subset_prox_lnb2pbb, idents = "Lower nodal bundle")
-cells_his1 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 1")
-cells_his2 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 2")
-cells_pbb <- WhichCells(subset_prox_lnb2pbb, idents = "Proximal bundle branch")
-cells_dbb <- WhichCells(subset_prox, idents = "Distal bundle branch")
-cells_pf <- WhichCells(ccs, idents = "Purkinje fibers")
-cells_prolif <- WhichCells(ccs, idents = "Proliferative AVCS")
-cells_cc <- WhichCells(ccs, idents = "Contractile myocytes")
-```
-
-# Add to metadata
-```{r}
-ccs <- SetIdent(ccs, value = "Contractile myocytes", cells = cells_cc)
-ccs <- SetIdent(ccs, value = "Proliferative CCS", cells = cells_prolif)
-ccs <- SetIdent(ccs, value = "Purkinje fibers", cells = cells_pf)
-ccs <- SetIdent(ccs, value = "Distal bundle branch", cells = cells_dbb)
-ccs <- SetIdent(ccs, value = "Proximal bundle branch", cells = cells_pbb)
-ccs <- SetIdent(ccs, value = "His bundle 2", cells = cells_his2)
-ccs <- SetIdent(ccs, value = "His bundle 1", cells = cells_his1)
-ccs <- SetIdent(ccs, value = "Lower nodal bundle", cells = cells_lnb)
-ccs <- SetIdent(ccs, value = "Compact AV node", cells = cells_avn)
-ccs <- SetIdent(ccs, value = "SA node", cells = cells_san)
-
-ccs$sub_all <- Idents(ccs)
-```
-
-
-# Global CCS - UMAP
+# Visualizations - Main Figure 1 & Supplementary Figure 5
+# Global CCS - UMAP & VlnPlot
 ```{r}
 DimPlot(
   ccs,
@@ -82,10 +19,9 @@ DimPlot(
     plot.title = element_blank(),
     legend.position = 'left'
   )
-```
 
-# sFigXA - global CCS - VlnPlot
-```{r}
+
+
 VlnPlot(
   ccs,
   features = c(
@@ -117,7 +53,7 @@ VlnPlot(
         plot.title = element_blank())
 ```
 
-# Proximal CCS - UMAP
+# Proximal CCS - UMAP & VlnPlot
 ```{r}
 DimPlot(
   subset_prox,
@@ -129,10 +65,9 @@ DimPlot(
   
   theme(text = element_text(size = 15),
         plot.title = element_blank())
-```
 
-# Proximal CCS - VlnPlot
-```{r}
+
+
 VlnPlot(
   subset_prox,
   features = c(
@@ -165,7 +100,7 @@ VlnPlot(
         plot.title = element_blank())
 ```
 
-# Nodes CCS - UMAP
+# Nodes CCS - UMAP & VlnPlot
 ```{r}
 DimPlot(
   subset_nodes,
@@ -177,10 +112,7 @@ DimPlot(
   
   theme(text = element_text(size = 15),
         plot.title = element_blank())
-```
 
-# Nodes CCS - VlnPlot
-```{r}
 
 VlnPlot(
   subset_nodes,
@@ -206,10 +138,9 @@ VlnPlot(
   NoAxes() &
   theme(strip.text.y = element_text(size = 19, hjust = 0, face = 'italic'),
         plot.title = element_blank())
-
 ```
 
-# LNB-HIS-PBB CCS - UMAP
+# LNB-HIS-PBB CCS - UMAP & VlnPlot
 ```{r}
 DimPlot(
   subset_prox_lnb2pbb,
@@ -221,10 +152,8 @@ DimPlot(
   
   theme(text = element_text(size = 15),
         plot.title = element_blank())
-```
 
-# LNB-HIS-PBB CCS - VlnPlot
-```{r}
+
 VlnPlot(
   subset_prox_lnb2pbb,
   features = c("Irx3",
