@@ -1,0 +1,270 @@
+---
+title: "R2R_sFig10_ionchannels"
+output: R2R_sFig10_ionchannels
+date: "2023-12-15"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Obtain ion channel list - filtered (overlap between all genes in sc and spatial)
+```{r}
+ionchannel <- read.table("~/ionchannels_guidetopharmacology_org_nonzeroinsc.txt", sep = '\t', header = F)
+
+ionchannel_update <- ionchannel$V1
+ionchannel_update_voltage <- ionchannel_update[1:110]
+ionchannel_update_ligand <- ionchannel_update[111:166]
+ionchannel_update_others <- ionchannel_update[167:201]
+
+```
+
+# Voltage gated ionchannels - DotPlot
+```{r}
+DotPlot(
+  ccs,
+  features = ionchannel_update_voltage,
+  cols = c('whitesmoke', 'deeppink4'),
+  # col.min = 0,
+  # col.max = 2,
+  # dot.scale = 6,
+  dot.min = -0.10
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 10,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+```
+
+# Ligand gated ionchannels - DotPlot
+```{r}
+DotPlot(
+  ccs,
+  features = ionchannel_update_ligand,
+  cols = c('whitesmoke', 'deeppink4'),
+  dot.min = -0.10
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 10,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+```
+
+# sFigx - Other ionchannels - DotPlot
+```{r}
+DotPlot(
+  ccs,
+  features = ionchannel_update_others,
+  cols = c('whitesmoke', 'deeppink4'),
+  dot.min = -0.10
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 10,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+```
+
+
+
+# Heatmap for spatial
+```{r}
+spatial_vgic <- read.table("~/spatial_guidetopharm_vgic_nozeroes_reorder.txt")
+row.names(spatial_vgic) <- spatial_vgic$V1
+spatial_vgic$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("q3_ExpressionFile_wlnb_forfig2_heatmap_groups.txt")
+colnames(spatial_vgic) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_vgic_scaled <- as.matrix(t(scale(t(spatial_vgic))))
+spatial_vgic_scaled <- t(spatial_vgic_scaled)
+```
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+heatmap_spatial_col = circlize::colorRamp2(c(-2, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B"))
+```
+
+# Fig2A - Spatial heatmap - Voltage gated ion channels
+```{r}
+tiff("~/spatial_vgic_reorder.tiff", width = 10, height = 2.6, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_vgic_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```
+
+
+# sFigx - Heatmap for spatial - Ligand gated ion channels
+```{r}
+spatial_lgic <- read.table("~/spatial_guidetopharm_ligand.txt")
+row.names(spatial_lgic) <- spatial_lgic$V1
+spatial_lgic$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("~/q3_ExpressionFile_wlnb_forfig2_heatmap_groups.txt")
+colnames(spatial_lgic) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_ligand_scaled <- as.matrix(t(scale(t(spatial_lgic))))
+spatial_ligand_scaled <- t(spatial_ligand_scaled)
+```
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+heatmap_spatial_col = circlize::colorRamp2(c(-2, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B")) 
+```
+
+# Fig2A - Spatial heatmap
+```{r}
+tiff("~/spatial_ligand.tiff", width = 8, height = 2.6, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_ligand_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```
+
+
+
+
+# Heatmap for spatial - Others
+```{r}
+spatial_others <- read.table("~/spatial_guidetopharm_others.txt")
+row.names(spatial_others) <- spatial_others$V1
+spatial_others$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("~/q3_ExpressionFile_wlnb_forfig2_heatmap_groups.txt")
+colnames(spatial_others) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_others_scaled <- as.matrix(t(scale(t(spatial_others))))
+spatial_others_scaled <- t(spatial_others_scaled)
+```
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+heatmap_spatial_col = circlize::colorRamp2(c(-2, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B"))
+```
+
+# Fig2A - Spatial heatmap
+```{r}
+tiff("~/spatial_others.tiff", width = 6, height = 3, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_others_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```

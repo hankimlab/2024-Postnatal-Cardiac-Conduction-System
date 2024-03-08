@@ -1,0 +1,158 @@
+---
+title: "CCS_SupplementaryFig3_preprocessing"
+output: html_document
+date: "2023-02-02"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Histograms of preprocessed data
+```{r}
+hist(allcells_preprocessed$percent.mito, 
+            breaks=50,
+            main = NA,
+     xlab = "Mitochondrial gene percentage (%)",
+            ylab = "Number of cells",
+            col = "darkolivegreen4",
+            ylim = c(0,2000),
+            plot = TRUE)
+```
+
+```{r}
+hist(allcells_preprocessed$nFeature_RNA,
+     breaks = 50,
+     main = NA,
+     xlab = "Number of genes",
+     ylab = "Number of cells",
+     col = "darkolivegreen4",
+     ylim = c(0,500),
+     plot = TRUE)
+```
+
+```{r}
+hist(allcells_preprocessed$nCount_RNA,
+     breaks = 50,
+     main = NA,
+     xlab = "Number of UMIs",
+     ylab = "Number of cells",
+     col = "darkolivegreen4",
+     ylim = c(0,800),
+     plot = TRUE)
+```
+
+
+# Histograms of postprocessed data
+```{r}
+hist(allcells_postprocessed$percent.mito, 
+            breaks=50,
+            main = NA,
+     xlab = "Mitochondrial gene percentage (%)",
+            ylab = "Number of cells",
+            col = "gold3",
+            ylim = c(0,500),
+            plot = TRUE)
+```
+
+```{r}
+hist(allcells_postprocessed$nFeature_RNA,
+     breaks = 50,
+     main = NA,
+     xlab = "Number of genes",
+     ylab = "Number of cells",
+     col = "gold3",
+     ylim = c(0,250),
+     plot = TRUE)
+```
+
+```{r}
+hist(allcells_postprocessed$nCount_RNA,
+     breaks = 50,
+     main = NA,
+     xlab = "Number of UMIs",
+     ylab = "Number of cells",
+     col = "gold3",
+     ylim = c(0,400),
+     plot = TRUE)
+```
+
+
+# VlnPlots of preprocessed data
+```{r}
+fig <- VlnPlot(allcells_preprocessed, 
+               features = "nFeature_RNA", 
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "preprocessed_nFeature_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+
+fig <- VlnPlot(allcells_preprocessed, 
+               features = "nCount_RNA", 
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "preprocessed_nCount_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+
+fig <- VlnPlot(allcells_preprocessed, 
+               features = "percent.mito", 
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "preprocessed_percent.mito_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+```
+
+# VlnPlots of postprocessed data
+```{r}
+fig <- VlnPlot(allcells_postprocessed, 
+               features = "nFeature_RNA",
+               group.by = "orig.ident",
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "postprocessed_nFeature_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+
+fig <- VlnPlot(allcells_postprocessed, 
+               features = "nCount_RNA",
+               group.by = "orig.ident",
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "postprocessed_nCount_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+
+fig <- VlnPlot(allcells_postprocessed, 
+               features = "percent.mito", 
+               group.by = "orig.ident",
+               pt.size = 0.1,
+               cols = c("gold", "firebrick2", "blue")) &
+  scale_x_discrete(labels= c("P1", "P2", "P4")) &
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 0, size = 14, hjust = 0.5)) &
+  NoLegend() 
+
+ggsave(fig, file = "postprocessed_percent.mito_devage.tiff",
+       dpi = 300, width = 3, height = 4)
+```

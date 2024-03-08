@@ -1,0 +1,250 @@
+---
+title: "R2R_sFig11_sarcomericproteins"
+output: R2R_sFig11_sarcomericproteins
+date: "2023-12-19"
+editor_options: 
+  chunk_output_type: console
+---
+
+# I band - DotPlot
+```{r}
+sarcomere <- read.table("~/list_I_band.txt")
+sarcomere <- sarcomere$V1
+
+DotPlot(
+  ccs,
+  features = sarcomere,
+  cols = c('whitesmoke', 'deeppink4'),
+  dot.scale = 1,
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 14,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+
+```
+
+# A band - DotPlot
+```{r}
+sarcomere <- read.table("~/list_A_band.txt")
+sarcomere <- sarcomere$V1
+
+fig <- DotPlot(
+  ccs,
+  features = sarcomere,
+  cols = c('whitesmoke', 'deeppink4'),
+  dot.scale = 1,
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 12,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+```
+
+# Striated muscle - DotPlot
+```{r}
+sarcomere <- read.table("~/list_striatedmuscle.txt")
+sarcomere <- sarcomere$V1
+
+fig <- DotPlot(
+  ccs,
+  features = sarcomere,
+  cols = c('whitesmoke', 'deeppink4'),
+  dot.scale = 1,
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 12,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+```
+
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+heatmap_spatial_col = circlize::colorRamp2(c(-2, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B")) 
+```
+
+# A band - Heatmap for spatial
+```{r}
+spatial_sarcomeric <- read.table("~/spatial_A_band_avg.txt")
+row.names(spatial_sarcomeric) <- spatial_sarcomeric$V1
+spatial_sarcomeric$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("~/label_avg.txt")
+colnames(spatial_sarcomeric) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_sarcomeric_scaled <- as.matrix(t(scale(t(spatial_sarcomeric))))
+spatial_sarcomeric_scaled <- t(spatial_sarcomeric_scaled)
+```
+
+# Spatial heatmap - A band
+```{r}
+tiff("~/spatial_a_band_avg.tiff", width = 7, height = 2.5, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_sarcomeric_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```
+
+# I band - Heatmap for spatial
+```{r}
+spatial_sarcomeric <- read.table("~/spatial_I_band_avg.txt")
+row.names(spatial_sarcomeric) <- spatial_sarcomeric$V1
+spatial_sarcomeric$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("~/label_avg.txt")
+colnames(spatial_sarcomeric) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_sarcomeric_scaled <- as.matrix(t(scale(t(spatial_sarcomeric))))
+spatial_sarcomeric_scaled <- t(spatial_sarcomeric_scaled)
+```
+
+# Spatial heatmap - A band
+```{r}
+tiff("~/spatial_i_band_avg.tiff", width = 10, height = 3, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_sarcomeric_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```
+
+
+# Striated muscle - Heatmap for spatial
+```{r}
+spatial_sarcomeric <- read.table("~/spatial_striatedmuscle_avg.txt")
+row.names(spatial_sarcomeric) <- spatial_sarcomeric$V1
+spatial_sarcomeric$V1 <- NULL
+```
+
+# Create labels
+```{r}
+spatialheatmap_labels <- read.table("~/label_avg.txt")
+colnames(spatial_sarcomeric) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+spatial_sarcomeric_scaled <- as.matrix(t(scale(t(spatial_sarcomeric))))
+spatial_sarcomeric_scaled <- t(spatial_sarcomeric_scaled)
+```
+
+# Spatial heatmap - striated muscle
+```{r}
+tiff("~/spatial_striated_muscle_avg.tiff", width = 5, height = 3.5, units = "in", res = 500)
+
+fig <- Heatmap(
+  spatial_sarcomeric_scaled,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  row_names_side = 'left',
+  column_names_gp = gpar(fontsize = 6),
+  column_names_side = 'top'
+)
+
+draw(fig)
+
+dev.off()
+```
