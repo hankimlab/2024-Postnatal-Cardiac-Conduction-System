@@ -1,0 +1,139 @@
+---
+title: "Clustering analysis"
+output: html_document
+date: "2023-08-31"
+editor_options: 
+  chunk_output_type: console
+---
+# Load the data into R
+```{r}
+p1.data <- Read10X(data.dir = "~/tdtomato_cre_P1/outs/filtered_feature_bc_matrix")
+p2.data <- Read10X(data.dir = "~/tdtomato_cre_P2/outs/filtered_feature_bc_matrix")
+p4.data <- Read10X(data.dir = "~/tdtomato_cre_P4/outs/filtered_feature_bc_matrix")
+```
+
+# Move the data into a "Seurat Object"
+```{r}
+p1 <- CreateSeuratObject(counts= p1.data, min.cells = 0, project = "P1")
+p2 <- CreateSeuratObject(counts= p2.data, min.cells = 0, project = "P2")
+p4 <- CreateSeuratObject(counts= p4.data, min.cells = 0, project = "P4")
+```
+
+# Combine seurat objects
+```{r}
+allcells_preprocessed <- merge(x=p1, y=c(p2,p4), add.cell.ids = c("P1", "P2", "P4"), project = "ccs")
+```
+
+# Pre-processing - define percent.mito & filter cells based on nFeature & percent.mito
+```{r}
+allcells_preprocessed[["percent.mito"]] <-
+  PercentageFeatureSet(allcells_preprocessed, pattern = "^mt-")
+
+allcells_postprocessed <- subset(allcells_preprocessed,
+                                 subset = nFeature_RNA > 2000 &
+                                   nFeature_RNA < 5500 &
+                                   percent.mito < 25 & 
+                     percent.mito > 5)
+```
+
+# Seurat workflow - allcells
+```{r}
+allcells_postprocessed <- NormalizeData(allcells_postprocessed)
+allcells_postprocessed <- FindVariableFeatures(allcells_postprocessed, selection.method = "vst", nfeatures = 5000)
+allcells_postprocessed <- ScaleData(allcells_postprocessed, features = rownames(allcells))
+allcells_postprocessed <- RunPCA(allcells_postprocessed, npcs = 50)
+allcells_postprocessed <- RunUMAP(allcells_postprocessed, dims = 1:25) 
+allcells_postprocessed <- FindNeighbors(allcells_postprocessed, dims = 1:25)
+allcells_postprocessed <- FindClusters(allcells_postprocessed, resolution = 0.25)
+DimPlot(allcells_postprocessed)
+```
+
+# Extract cardiomyocytes (CMs) & perform seurat workflow
+```{r}
+Idents(allcells_postprocessed) <- allcells_postprocessed$RNA_snn_res.0.25
+ccs <- subset(allcells_postprocessed, idents = c('0', '1', '2', '3', '4'))
+ccs <- NormalizeData(ccs)
+ccs <- FindVariableFeatures(ccs, selection.method = "vst", nfeatures = 5000)
+ccs <- ScaleData(ccs, vars.to.regress = c("percent.mito", "nCount_RNA"), features = rownames(ccs))
+ccs <- RunPCA(ccs, npcs = 50)
+ccs <- RunUMAP(ccs, dims = 1:25) 
+ccs <- FindNeighbors(ccs, dims = 1:25)
+ccs <- FindClusters(ccs, resolution = 0.19)
+DimPlot(ccs)
+```
+
+# Extract proximal CCS & perform seurat workflow
+```{r}
+Idents(ccs) <- ccs$global
+subset_prox <- subset(ccs, idents = "Proximal CCS")
+subset_prox <- NormalizeData(subset_prox)
+subset_prox <- FindVariableFeatures(subset_prox, selection.method = "vst", nfeatures = 5000)
+subset_prox <- ScaleData(subset_prox, vars.to.regress = c("percent.mito", "nCount_RNA"), features = rownames(subset_prox))
+subset_prox <- RunPCA(subset_prox, npcs = 50)
+subset_prox <- RunUMAP(csubset_proxcs, dims = 1:25) 
+subset_prox <- FindNeighbors(subset_prox, dims = 1:25)
+subset_prox <- FindClusters(subset_prox, resolution = 0.4)
+DimPlot(subset_prox)
+```
+
+# Extract LNB-HIS-PBB and perform seurat workflow
+```{r}
+Idents(subset_prox) <- subset_prox$RNA_snn_res.0.4
+subset_prox_lnb2pbb <- subset(subset_prox, idents = c('1', '2'))
+subset_prox_lnb2pbb <- NormalizeData(subset_prox_lnb2pbb)
+subset_prox_lnb2pbb <- FindVariableFeatures(subset_prox_lnb2pbb)
+subset_prox_lnb2pbb <- ScaleData(subset_prox_lnb2pbb, vars.to.regress = c('nCount_RNA', 'percent.mito'))
+subset_prox_lnb2pbb <- RunPCA(subset_prox_lnb2pbb)
+subset_prox_lnb2pbb <- RunUMAP(subset_prox_lnb2pbb, dims = 1:10)
+subset_prox_lnb2pbb <- FindNeighbors(subset_prox_lnb2pbb, dims = 1:10)
+subset_prox_lnb2pbb <- FindClusters(subset_prox_lnb2pbb, resolution = 0.6)
+DimPlot(subset_prox_lnb2pbb) & NoAxes()
+```
+
+# Extract Nodes and perform seurat workflow
+```{r}
+Idents(subset_prox) <- subset_prox$RNA_snn_res.0.4
+subset_prox_nodes <- subset(subset_prox, idents = '0')
+subset_prox_nodes <- NormalizeData(subset_prox_nodes)
+subset_prox_nodes <- FindVariableFeatures(subset_prox_nodes, nfeatures = 100)
+subset_prox_nodes <- ScaleData(subset_prox_nodes, vars.to.regress = c('nCount_RNA', 'percent.mito'))
+subset_prox_nodes <- RunPCA(subset_prox_nodes, dims = 1:42)
+subset_prox_nodes <- RunUMAP(subset_prox_nodes, dims = 1:40, n.neighbors = 10, min.dist = 0.3, spread = 1) 
+subset_prox_nodes <- FindNeighbors(subset_prox_nodes, dims = 1:40)
+subset_prox_nodes <- FindClusters(subset_prox_nodes, resolution = 0.97)
+DimPlot(subset_prox_nodes) & NoAxes()
+```
+
+# Integrate UMAP using subcluster information - Obtain cell ids from from all subsetted data
+```{r}
+Idents(ccs) <- ccs$all
+Idents(subset_prox) <- subset_prox$all
+Idents(subset_prox_lnb2pbb) <- subset_prox_lnb2pbb$lnb2pbb
+Idents(subset_prox_nodes) <- subset_prox_nodes$nodes
+
+cells_san <- WhichCells(subset_prox_nodes, idents = "SA node")
+cells_cavn <- WhichCells(subset_prox_nodes, idents = "Compact AV node")
+cells_lnb <- WhichCells(subset_prox_lnb2pbb, idents = "Lower nodal bundle")
+cells_his1 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 1")
+cells_his2 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 2")
+cells_pbb <- WhichCells(subset_prox_lnb2pbb, idents = "Proximal bundle branch")
+cells_dbb <- WhichCells(subset_prox, idents = "Distal bundle branch")
+cells_pf <- WhichCells(ccs, idents = "Purkinje fibers")
+cells_prolif <- WhichCells(ccs, idents = "Proliferative CCS")
+cells_cc <- WhichCells(ccs, idents = "Contractile myocytes")
+```
+
+# Add to metadata of ccs
+```{r}
+ccs <- SetIdent(ccs, value = "Contractile myocytes", cells = cells_cc)
+ccs <- SetIdent(ccs, value = "Proliferative CCS", cells = cells_prolif)
+ccs <- SetIdent(ccs, value = "Purkinje fibers", cells = cells_pf)
+ccs <- SetIdent(ccs, value = "Distal bundle branch", cells = cells_dbb)
+ccs <- SetIdent(ccs, value = "Proximal bundle branch", cells = cells_pbb)
+ccs <- SetIdent(ccs, value = "His bundle", cells = c(cells_his1, cells_his2))
+ccs <- SetIdent(ccs, value = "Lower nodal bundle", cells = cells_lnb)
+ccs <- SetIdent(ccs, value = "Compact AV node", cells = cells_avn)
+ccs <- SetIdent(ccs, value = "SA node", cells = cells_san)
+
+ccs$all <- Idents(ccs)
+```

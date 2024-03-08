@@ -1,0 +1,158 @@
+---
+title: "oh_goodyer_combined"
+output: html_document
+date: "2023-07-12"
+editor_options: 
+  chunk_output_type: console
+---
+
+## Integrate all CCS components from both Goodyer & Oh
+# Integrate data - make R list & normalize and find variable features
+```{r}
+list_ohgoodyer <- list()
+list_ohgoodyer$oh_ccs <- ccs
+list_ohgoodyer$goodyer_ccs <- goodyer_ccs
+
+for (i in 1:length(list_ohgoodyer)) {
+  list_ohgoodyer[[i]] <- NormalizeData(list_ohgoodyer[[i]], verbose = F)
+  list_ohgoodyer[[i]] <- FindVariableFeatures(list_ohgoodyer[[i]], verbose = F)
+ }
+```
+
+# Find anchors
+```{r}
+anchors <- FindIntegrationAnchors(object.list = list_ohgoodyer)
+```
+
+# Integrate data
+```{r}
+ohgoodyer <- IntegrateData(anchorset = anchors)
+```
+
+# Visualize Data - After integration
+```{r}
+ohgoodyer_int <- ohgoodyer
+DefaultAssay(ohgoodyer_int) <- "integrated"
+ohgoodyer_int <- ScaleData(ohgoodyer_int, verbose = F, features = rownames(ohgoodyer))
+ohgoodyer_int <- RunPCA(ohgoodyer_int, npcs = 50, verbose = F)
+ElbowPlot(ohgoodyer_int, ndims = 50)
+ohgoodyer_int <- RunUMAP(ohgoodyer_int, reduction = "pca", dims = 1:30, verbose = F)
+ohgoodyer_int <- FindNeighbors(ohgoodyer_int, reduction = "pca", dims = 1:30)
+ohgoodyer_int <- FindClusters(ohgoodyer_int, resolution = 0.4)
+DimPlot(ohgoodyer_int) & NoAxes()
+```
+
+# Assign cell identities
+```{r}
+Idents(ohgoodyer_int) <- ohgoodyer_int$maybe
+
+cells_goodyer_1_cSANhead <- WhichCells(ohgoodyer_int, idents = 'cSAN-Head')
+cells_goodyer_2_cSANTail <- WhichCells(ohgoodyer_int, idents = 'cSAN-Tail')
+cells_goodyer_3_tzSAN <- WhichCells(ohgoodyer_int, idents = 'Transitional SAN')
+cells_goodyer_4_cAVN <- WhichCells(ohgoodyer_int, idents = 'cAVN')
+cells_goodyer_5_ATZ1 <- WhichCells(ohgoodyer_int, idents = 'Atrial transitional zone 1')
+cells_goodyer_6_ATZ2 <- WhichCells(ohgoodyer_int, idents = 'Atrial transitional zone 2')
+cells_goodyer_7_NAVR <- WhichCells(ohgoodyer_int, idents = 'Nodal AV ring')
+cells_goodyer_8_His <- WhichCells(ohgoodyer_int, idents = 'His bundle')
+cells_goodyer_9_VTZ <- WhichCells(ohgoodyer_int, idents = 'Ventricular transitional zone')
+cells_goodyer_10_tzPF1 <- WhichCells(ohgoodyer_int, idents = 'Transitional PF1')
+cells_goodyer_11_tzPF2 <- WhichCells(ohgoodyer_int, idents = 'Transitional PF2')
+cells_goodyer_12_PF <- WhichCells(ohgoodyer_int, idents = 'Purkinje fiber')
+
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_1_cSANhead, value = 'E16.5 - SAN-Head')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_2_cSANTail, value = 'E16.5 - SAN-Tail')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_3_tzSAN, value = 'E16.5 - Tz-SAN')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_4_cAVN, value = 'E16.5 - cAVN')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_5_ATZ1, value = 'E16.5 - Atrial TZ 1')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_6_ATZ2, value = 'E16.5 - Atrial TZ 2')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_7_NAVR, value = 'E16.5 - Nodal AVR')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_8_His, value = 'E16.5 - His bundle')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_9_VTZ, value = 'E16.5 - Ventricular TZ')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_10_tzPF1, value = 'E16.5 - Tz-PF 1')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_11_tzPF2, value = 'E16.5 - Tz-PF 2')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_12_PF, value = 'E16.5 - PF 1')
+
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_san, value = 'P - SA node')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_avn, value = 'P - AV node')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_his1, value = 'P - His bundle 1')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_his2, value = 'P - His bundle 2')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_lnb, value = 'P - Lower Nodal Bundle')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_pbb, value = 'P - Proximal Bundle branches')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_dbb, value = 'P - Distal Bundle branches')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_pf, value = 'P - Purkinje fibers')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_prolif, value = 'P - Proliferative CCS')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_cc, value = 'P - Contractile cardiomyocytes')
+
+
+ohgoodyer_int$ohgoodyer <- Idents(ohgoodyer_int)
+
+DimPlot(
+  ohgoodyer_int,
+  label = T,
+  label.size = 7,
+  label.box = T,
+  pt.size = 3,
+  repel = T,
+  cols = colors_test
+) &
+  NoLegend() & NoAxes()
+```
+
+# Set batch identity
+```{r}
+Idents(ohgoodyer_int) <- ohgoodyer_int$ccs
+cells_goodyer_all <- WhichCells(ohgoodyer_int, idents = c('z1_SAN', 'z2_AVN/His', 'z3_PF'))
+Idents(ohgoodyer_int) <- ohgoodyer_int$dev.age
+cells_oh_all <- WhichCells(ohgoodyer_int, idents = c('P1', 'P2', 'P4'))
+
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_oh_all, value = 'Postnatal')
+cells_goodyer_z1 <- WhichCells(ohgoodyer_int, idents = 'z1_SAN')
+cells_goodyer_z2 <- WhichCells(ohgoodyer_int, idents = 'z2_AVN/His')
+cells_goodyer_z3 <- WhichCells(ohgoodyer_int, idents = 'z3_PF')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_z1, value = 'Embryonic_z1')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_z2, value = 'Embryonic_z2')
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_z3, value = 'Embryonic_z3')
+ohgoodyer_int$batch <- Idents(ohgoodyer_int)
+
+
+Idents(ohgoodyer_int) <- ohgoodyer_int$dev.age
+ohgoodyer_int <- SetIdent(ohgoodyer_int, cells = cells_goodyer_all, value = 'E16.5')
+ohgoodyer_int$ohgoodyer_devage <- Idents(ohgoodyer_int)
+```
+
+
+## Integrate all CCS components from both Goodyer & Oh
+# Integrate data - make R list & normalize and find variable features
+```{r}
+list_ohgoodyer <- list()
+list_ohgoodyer$oh_ccs <- ccs
+list_ohgoodyer$goodyer_ccs <- goodyer_ccs
+
+for (i in 1:length(list_ohgoodyer)) {
+  list_ohgoodyer[[i]] <- NormalizeData(list_ohgoodyer[[i]], verbose = F)
+  list_ohgoodyer[[i]] <- FindVariableFeatures(list_ohgoodyer[[i]], verbose = F)
+ }
+```
+
+# Find anchors
+```{r}
+anchors <- FindIntegrationAnchors(object.list = list_ohgoodyer)
+```
+
+# Integrate data
+```{r}
+ohgoodyer <- IntegrateData(anchorset = anchors)
+```
+
+# Visualize Data - After integration
+```{r}
+ohgoodyer_int <- ohgoodyer
+DefaultAssay(ohgoodyer_int) <- "integrated"
+ohgoodyer_int <- ScaleData(ohgoodyer_int, verbose = F, features = rownames(ohgoodyer))
+ohgoodyer_int <- RunPCA(ohgoodyer_int, npcs = 50, verbose = F)
+ElbowPlot(ohgoodyer_int, ndims = 50)
+ohgoodyer_int <- RunUMAP(ohgoodyer_int, reduction = "pca", dims = 1:30, verbose = F)
+ohgoodyer_int <- FindNeighbors(ohgoodyer_int, reduction = "pca", dims = 1:30)
+ohgoodyer_int <- FindClusters(ohgoodyer_int, resolution = 0.4)
+DimPlot(ohgoodyer_int) & NoAxes()
+```
