@@ -1,0 +1,479 @@
+---
+title: "CCS_MainFig4"
+output: html_document
+date: "2023-09-15"
+editor_options: 
+  chunk_output_type: console
+---
+# Color palette
+```{r}
+mycolors_goodyer <- c(
+  "#661100", #E16.5 - SAN-Head
+  "#990000", #E16.5 - SAN-Tail
+  "#B80F0A", #E16.5 - Tz-SAN
+  "#DD561C", #E16.5 - cAVN
+  "#f7a92b", #E16.5 - Nodal AVR
+  "#F98228", #E16.5 - Atrial TZ
+  "#FADA5E", #E16.5 - His bundle
+  "#5AAE61", #E16.5 - Ventricular TZ
+  "#2166AC", #E16.5 - Tz-PF
+  "#512889" #E16.5 - PF
+)
+
+
+mycolors2 <- c(    
+  "#4d0000", #P - SA node
+  "#E8601C", #P - AV node
+  "#F1932D", #P - Lower nodal bundle
+  "#F6C141", #P - His bundle
+  "#3DBF3D", #P - Proximal bundle branches
+  "#77C9E9", #P - Distal bundle branches
+  "#7c7cc1", #P - Purkinje fibers
+  "#4C4C4C", #P - Proliferative CCS
+  "#BBBBBB" #P - Contractile cardiomyocytes
+)
+
+
+mycolors_ohgoodyer <-
+  c(
+    "#661100", #E16.5 - SAN-Head
+    "#990000", #E16.5 - SAN-Tail
+    "#B80F0A", #E16.5 - Tz-SAN
+    "#DD561C", #E16.5 - cAVN
+    "#F98228", #E16.5 - Atrial TZ
+    "#f7a92b", #E16.5 - Nodal AVR
+    "#FADA5E", #E16.5 - His bundle
+    "#5AAE61", #E16.5 - Ventricular TZ
+    "#2166AC", #E16.5 - Tz-PF
+    "#512889", #E16.5 - PF
+    "#4d0000", #P - SA node
+    "#E8601C", #P - Compact AV node
+    "#F1932D", #P - Lower nodal bundle
+    "#F6C141", #P - His bundle
+    "#3DBF3D", #P - Proximal bundle branches
+    "#77C9E9", #P - Distal bundle branches
+    "#7c7cc1", #P - Purkinje fibers
+    "#4C4C4C", #P - Proliferative CCS
+    "#BBBBBB" #P - Contractile Myocytes
+  )
+```
+
+# Fig 4A - UMAP for Embryonic CCS
+```{r}
+DimPlot(
+  goodyer_ccs,
+  group.by = 'goodyer',
+  cols = mycolors_goodyer,
+  pt.size = 1.5
+) &
+  NoAxes() & NoLegend() &
+  theme(text = element_text(size = 15),
+        plot.title = element_blank(),
+        panel.background = element_rect(fill = "transparent", colour = NA),  
+        plot.background = element_rect(fill = "transparent", colour = NA))
+
+```
+
+# Fig 4A - UMAP for Postnatal CCS
+```{r}
+DimPlot(
+  ccs,
+  cols = mycolors2,
+  pt.size = 0.5
+) &
+  NoAxes() &
+
+  theme(text = element_text(size = 15),
+        plot.title = element_blank(),
+        panel.background = element_rect(fill = "transparent", colour = NA),  
+        plot.background = element_rect(fill = "transparent", colour = NA)) &
+  NoLegend()
+```
+
+# Fig 4A - Integrated CCS - Postnatal only
+```{r}
+nacol <- "grey92"
+Idents(ohgoodyer_int) <- ohgoodyer_int$postnatal
+
+DimPlot(
+  ohgoodyer_int,
+  cols = mycolors2,
+  pt.size = 0.8,
+  order = T,
+  shuffle = T,
+  na.value = alpha(nacol, 0.1),
+) &
+  NoAxes() &
+  theme(text = element_text(size = 15),
+        plot.title = element_blank(),
+        panel.background = element_rect(fill = "transparent", colour = NA),  
+        plot.background = element_rect(fill = "transparent", colour = NA))
+```
+
+# Fig 4A - Integrated CCS - Embryonic only
+```{r}
+nacol <- "grey92"
+Idents(ohgoodyer_int) <- ohgoodyer_int$embryonic
+
+DimPlot(
+  ohgoodyer_int,
+    cols = mycolors_goodyer,
+  na.value = alpha(nacol, 0.1),
+  order = T,
+  shuffle = T,
+  pt.size = 0.8
+) &
+  NoAxes() & 
+  theme(
+    text = element_text(size = 15),
+    plot.title = element_blank(),
+    panel.background = element_rect(fill = "transparent", colour = NA),
+    plot.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+```
+
+# Figure 4B - Correlation plot - ohgoodyer_int
+```{r}
+library(corrplot)
+
+DefaultAssay(ohgoodyer_int) <- "integrated"
+
+avg_ohgoodyer_int <-
+  AverageExpression(ohgoodyer_int, return.seurat = T) # make averaged seurat object
+avg_ohgoodyer_int_mtx <-
+  avg_ohgoodyer_int@assays[["integrated"]]@data # retrieve normalized exp
+avg_ohgoodyer_int_mtx_cor <-
+  cor(avg_ohgoodyer_int_mtx) # run correlation
+
+write.table(
+  avg_ohgoodyer_int_mtx_cor,
+  "~fig4b_1_correlation.txt",
+  sep = '\t',
+  col.names = NA
+)
+```
+
+# After re-organizing correlation values, re-read & scale data
+```{r}
+avg_ohgoodyer_int_mtx_cor <-
+  read.table("~fig4b_2_correlation_reorg.txt",
+             header = T)
+rownames(avg_ohgoodyer_int_mtx_cor) <- avg_ohgoodyer_int_mtx_cor$X
+avg_ohgoodyer_int_mtx_cor$X <- NULL
+
+avg_ohgoodyer_int_mtx_cor <- scale(t(avg_ohgoodyer_int_mtx_cor))
+avg_ohgoodyer_int_mtx_cor <- t(avg_ohgoodyer_int_mtx_cor)
+```
+
+```{r}
+label_sc <-
+  read.table(
+    "/Users/yenaoh/Desktop/Mission_PhD/Paper/CCS_Manuscript/1_NatCommSubmission/1_R2R/1_R2R_fig/fig4/onehis/label.txt"
+  )
+label_sc <- label_sc$V1
+rownames(avg_ohgoodyer_int_mtx_cor) <- label_sc
+
+write.table(
+  avg_ohgoodyer_int_mtx_cor,
+  "/Users/yenaoh/Desktop/Mission_PhD/Paper/CCS_Manuscript/1_NatCommSubmission/1_R2R/1_R2R_fig/fig4/onehis/fig4b_3_correlation_scaled.txt",
+  sep = '\t',
+  col.names = NA
+)
+```
+
+```{r}
+# colorRampPalette(brewer.pal(3,"YlOrRd"))(100)
+heatmap_corr_p_e = circlize::colorRamp2(c(-1.5,0,1.5), colors = c("#ffffc0", "#fd8d3c", "#800026"))
+```
+
+```{r}
+tiff("~/fig4b_embryonic_postnatal_corr_heatmap_nodendro.tiff", width = 3.5, height = 4.5, units = "in", res = 500)
+
+fig <- Heatmap(
+  avg_ohgoodyer_int_mtx_cor,
+  name = "Scaled\nCorrelation",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_column_dend = TRUE,
+  col = heatmap_corr_p_e,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  column_names_gp = gpar(fontsize = 6)
+)
+
+draw(fig)
+
+dev.off()
+```
+
+# Fig 4C - DotPlot of common genes
+```{r}
+markers_common_notcc <-
+  read.table("~/fig4c_commonmarkers_notCC_20240205.txt")
+markers_common_notcc <- markers_common_notcc$V1
+markers_common_notcc <- unique(markers_common_notcc)
+markers_common_notcc <- rev(markers_common_notcc)
+```
+
+```{r}
+DotPlot(
+  goodyer_ccs,
+  assay = "RNA",
+  features = markers_common_notcc,
+  cols = c('whitesmoke', 'deeppink4'),
+  #dot.scale = 5,
+  col.min = -0.5,
+  col.max = 2
+)  & coord_flip() &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 25, 50, 75, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 10,
+      angle = 45,
+      vjust = 1,
+      hjust = 1
+    ),
+    axis.ticks.length.x.bottom = unit(1, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.35, 'cm'),
+    legend.key.height = unit(0.35, 'cm')
+  )
+
+```
+
+# Fig 4D - VlnPlot of different genes - Embryonic vs Postnatal
+```{r}
+DefaultAssay(ohgoodyer_int) <- "RNA"
+
+markers_ohgoodyer_sant <-
+  FindMarkers(
+    ohgoodyer_int,
+    ident.1 = "E16.5 - SAN-Tail",
+    ident.2 = "P - SA node",
+    logfc.threshold = 0
+  )
+write.table(
+  markers_ohgoodyer_sant,
+  "~/fig4d_ohgoodyer_markers_ESANtail_PSAN_RNA.csv",
+  sep = ',',
+  col.names = NA
+)
+
+markers_ohgoodyer_avn <-
+  FindMarkers(
+    ohgoodyer_int,
+    ident.1 = "E16.5 - Compact AVN",
+    ident.2 = "P - AV node",
+    logfc.threshold = 0
+  )
+write.table(
+  markers_ohgoodyer_avn,
+  "~/fig4d_ohgoodyer_markers_EcAVN_PAVN_RNA.csv",
+  sep = ',',
+  col.names = NA
+)
+
+markers_ohgoodyer_his <-
+  FindMarkers(
+    ohgoodyer_int,
+    ident.1 = "E16.5 - His bundle",
+    ident.2 = "P - His bundle",
+    logfc.threshold = 0
+  )
+write.table(
+  markers_ohgoodyer_his,
+  "~/fig4d_ohgoodyer_markers_EHis_PHis_RNA.csv",
+  sep = ',',
+  col.names = NA
+)
+
+markers_ohgoodyer_pf <-
+  FindMarkers(
+    ohgoodyer_int,
+    ident.1 = "E16.5 - PF",
+    ident.2 = "P - Purkinje fibers",
+    logfc.threshold = 0
+  )
+write.table(
+  markers_ohgoodyer_pf,
+  "~/fig4d_ohgoodyer_markers_EPF_PPF_RNA.csv",
+  sep = ',',
+  col.names = NA
+)
+```
+
+# Find top markers
+```{r}
+markers_ohgoodyer_all_top_10pct <- markers_ohgoodyer_all %>%
+  filter(p_val_adj <= 0.05 & avg_log2FC >= 1) %>%
+  filter(max(pct.1, pct.2) >= 0.1) %>%
+  group_by(cluster) %>%
+  top_n(10, avg_log2FC) %>%
+  pull(gene)
+```
+
+```{r}
+markers_diff_san <-
+  read.table("~/fig4d_1_san_embvspost_RNA_n15.txt")
+markers_diff_san <- markers_diff_san$V1
+
+markers_diff_avn <-
+  read.table("~/fig4d_2_avn_embvspost_RNA_n15.txt")
+markers_diff_avn <- markers_diff_avn$V1
+
+markers_diff_his <-
+  read.table("~/fig4d_3_his_embvspost_RNA_n15.txt")
+markers_diff_his <- markers_diff_his$V1
+
+markers_diff_pf <-
+  read.table("~/fig4d_4_pf_embvspost_RNA_n15.txt")
+markers_diff_pf <- markers_diff_pf$V1
+```
+
+# Diff genes - SAN
+```{r}
+VlnPlot(
+     ohgoodyer_int,
+     assay = "RNA",
+     features = markers_diff_san,
+     idents = c("P - SA node", "E16.5 - SAN-Tail"),
+     fill.by = 'ident',
+     stack = TRUE,
+     flip = T,
+     cols = c("#990000","#990000")
+ ) & stat_summary(fun = mean, geom='crossbar', width = 0.2, colour = "black") &
+     theme(
+         axis.title.x = element_blank(),
+         axis.text.x = element_blank(),
+         # axis.text.x = element_text(
+         #     size = 16,
+         #     angle = 40,
+         #     vjust = 1,
+         #     hjust = 1
+         # ),
+         axis.ticks.length.x = unit(0.1, "cm"),
+         axis.ticks.length.y = unit(0.1, "cm"),
+         axis.title.y = element_blank(),
+         axis.text.y = element_text(size = 12),
+         strip.text = element_text(size = 15, hjust = 0, face = "italic")
+     ) &
+     NoLegend()
+```
+
+# Diff genes - AVN
+```{r}
+VlnPlot(
+  ohgoodyer_int,
+  assay = "RNA",
+  features = markers_diff_avn,
+  idents = c("P - AV node", "E16.5 - Compact AVN"),
+  fill.by = 'ident',
+  stack = TRUE,
+  flip = T,
+  cols = c("#F98228", "#F98228")
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    # axis.text.x = element_text(
+    #     size = 16,
+    #     angle = 40,
+    #     vjust = 1,
+    #     hjust = 1
+    # ),
+    axis.ticks.length.x = unit(0.1, "cm"),
+    axis.ticks.length.y = unit(0.1, "cm"),
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 15, hjust = 0, face = "italic")
+  ) &
+  NoLegend()
+```
+
+# Diff genes - His bundle
+```{r}
+VlnPlot(
+  ohgoodyer_int,
+  assay = "RNA",
+  features = markers_diff_his,
+  idents = c("P - His bundle", "E16.5 - His bundle"),
+  fill.by = 'ident',
+  stack = TRUE,
+  flip = T,
+  cols = c("#F6C141", "#F6C141")
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    # axis.text.x = element_text(
+    #     size = 16,
+    #     angle = 40,
+    #     vjust = 1,
+    #     hjust = 1
+    # ),
+    axis.ticks.length.x = unit(0.1, "cm"),
+    axis.ticks.length.y = unit(0.1, "cm"),
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 15, hjust = 0, face = "italic")
+  ) &
+  NoLegend()
+```
+
+# Diff genes - PF
+```{r}
+VlnPlot(
+  ohgoodyer_int,
+  assay = "RNA",
+  features = markers_diff_pf,
+  idents = c("P - Purkinje fibers", "E16.5 - PF"),
+  fill.by = 'ident',
+  stack = TRUE,
+  flip = T,
+  cols = c("#512889", "#512889")
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    # axis.text.x = element_text(
+    #     size = 16,
+    #     angle = 40,
+    #     vjust = 1,
+    #     hjust = 1
+    # ),
+    axis.ticks.length.x = unit(0.1, "cm"),
+    axis.ticks.length.y = unit(0.1, "cm"),
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 15, hjust = 0, face = "italic")
+  ) &
+  NoLegend()
+```

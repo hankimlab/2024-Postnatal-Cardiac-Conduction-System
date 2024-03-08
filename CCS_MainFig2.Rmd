@@ -1,0 +1,404 @@
+---
+title: "CCS_MainFig2"
+output: html_document
+date: "2023-11-27"
+editor_options: 
+  chunk_output_type: console
+---
+## Install packages
+```{r}
+library(devtools)
+install_github("jokergoo/ComplexHeatmap")
+```
+
+# Load libraries
+```{r}
+library(ComplexHeatmap)
+```
+
+# Find all markers - distinct from CC
+```{r}
+Idents(ccs) <- ccs$all
+markers_ccs_onehis <- FindAllMarkers(ccs, logfc.threshold = 0)
+
+markers_ccs_cc <- # To find CCS specific markers
+  FindMarkers(
+    ccs,
+    ident.1 = c(
+      "SA node",
+      "AV node",
+      "Lower nodal bundle",
+      "His bundle",
+      "Proximal bundle branch",
+      "Distal bundle branch",
+      "Purkinje fibers",
+      "Proliferative CCS"
+    ),
+    ident.2 = "Contractile cardiomyocytes",
+    logfc.threshold = 0
+  )
+```
+
+```{r}
+ccs_ccsonly <- subset(
+  ccs,
+  idents = c(
+    "SA node",
+    "Compact AV node",
+    "Lower nodal bundle",
+    "His bundle",
+    "Proximal bundle branch",
+    "Distal bundle branch",
+    "Purkinje fibers",
+    "Proliferative CCS"
+  )
+)
+
+ccs_ccsonly <- NormalizeData(ccs_ccsonly)
+ccs_ccsonly <- FindVariableFeatures(ccs_ccsonly, nfeatures = 5000)
+ccs_ccsonly <-
+  ScaleData(
+    ccs_ccsonly,
+    vars.to.regress = c('nCount_RNA', 'percent.mito'),
+    features = rownames(ccs_ccsonly)
+  )
+ccs_ccsonly <- RunPCA(ccs_ccsonly, npcs = 50)
+fig <- ElbowPlot(ccs_ccsonly, ndims = 50)
+
+
+markers_ccs_ccsonly <-
+  FindAllMarkers(ccs_ccsonly, logfc.threshold = 0)
+write.table(
+  markers_ccs_ccsonly,
+  file = "~/markers_within_ccs_only.txt",
+  sep = '\t',
+  col.names = NA
+)
+
+rm(markers_ccs_ccsonly)
+
+```
+
+# list of significant genes
+```{r}
+markers_ccsonly_basic_onehis <- markers_ccs_ccsonly %>%
+  filter(p_val_adj <= 0.05 & avg_log2FC >= 1) %>% # for FC > 2
+  group_by(cluster) %>%
+  top_n(50, avg_log2FC) %>%
+  pull(gene)
+```
+
+# Heatmap - Used ComplexHeatmap to show duplicates
+```{r}
+scaled_markers_ccsonly_basic_onehis <-
+  ccs_ccsonly[["RNA"]]@scale.data[markers_ccsonly_basic_onehis,] %>% as.matrix()
+cluster_anno <- ccs_ccsonly@meta.data$sub_all_onehis
+```
+
+# Decide on color palette
+```{r}
+#show_col(colorRampPalette(brewer.pal(9,"Reds"))(100))
+#myCol <- colorRampPalette(brewer.pal(9,"Reds"))(50)
+myBreaks <- seq(-2, 2.8, length.out = 50)
+myCol <- colorRampPalette(c("dodgerblue", "black", "yellow"))(50)
+```
+
+```{r}
+tiff(
+  "~/fig2a_sc_heatmap_ccsonly_log2fc1_pval0.05p.tiff",
+  width = 10,
+  height = 6.2,
+  units = "in",
+  res = 500
+)
+
+fig <- Heatmap(
+  scaled_markers_ccsonly_basic_onehis,
+  name = "Scaled\nExpression",
+  column_split = factor(cluster_anno),
+  cluster_columns = FALSE,
+  show_column_dend = FALSE,
+  cluster_column_slices = TRUE,
+  column_gap = unit(0.5, "mm"),
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = circlize::colorRamp2(myBreaks, myCol),
+  row_names_gp = gpar(fontsize = 4),
+  top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = mycolors2))),
+  #column_title_rot = 90,
+  column_title_gp = gpar(fontsize = 0),
+  show_column_names = FALSE,
+  use_raster = TRUE
+)
+
+draw(fig)
+
+dev.off()
+```
+
+# Fig2a (Left, Below) - Make a zoomed-in heatmap for proximal part of CCS only 
+```{r}
+subset_proxccsonlyheatmap <-
+  subset(
+    ccs_ccsonly,
+    idents = c(
+      "SA node",
+      "Compact AV node",
+      "Lower nodal bundle",
+      "His bundle",
+      "Proximal bundle branch"
+    )
+  )
+```
+
+# Do the same on smaller population
+```{r}
+scaled_markers_prox_ccsonly_forheatmap_onehis <-
+  subset_proxccsonlyheatmap[["RNA"]]@scale.data[markers_ccsonly_basic_onehis, ] %>% as.matrix()
+cluster_anno <- subset_proxccsonlyheatmap@meta.data$sub_all_onehis
+```
+
+```{r}
+tiff("~/fig2a_sc_heatmap_ccsonly_prox_log2fc1_pval0.05.tiff", width = 10, height = 2, units = "in", res = 500)
+
+fig <- Heatmap(scaled_markers_prox_ccsonly_forheatmap_onehis, 
+        name = "Scaled\nExpression",  
+        column_split = factor(cluster_anno),
+        cluster_columns = FALSE,
+        show_column_dend = FALSE,
+        cluster_column_slices = TRUE,
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = FALSE,
+        show_row_dend = FALSE,
+        col = circlize::colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 4),
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = mycolors2))),
+        #column_title_rot = 90,
+        column_title_gp = gpar(fontsize = 0),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+
+draw(fig)
+
+dev.off()
+```
+
+
+# Fig2A - Spatial heatmap - make matrix
+```{r}
+spatialheatmap <-
+  read.table(
+    "~/spatial_fc1.5_ccs_correspondingcntrl.txt"
+  )
+spatialheatmap$V1 <- make.unique(spatialheatmap$V1)
+row.names(spatialheatmap) <- spatialheatmap$V1
+spatialheatmap$V1 <- NULL
+
+spatialheatmap_labels <-
+  read.table(
+    "~/q3_ExpressionFile_wlnb_forfig2_heatmap_groups_ccsonly.txt"
+  )
+
+colnames(spatialheatmap) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+scaled_spatialheatmap <- as.matrix(t(scale(t(spatialheatmap))))
+```
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+quantile(scaled_spatialheatmap, c(0.1, 0.95))
+heatmap_spatial_col = circlize::colorRamp2(c(-1, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B")) # used for FC>1.2, pval<0.05
+```
+
+# Fig2A - Spatial heatmap
+```{r}
+tiff("~//fig2a_spatial_fc1.5_vs_correspondingcontrols.tiff", width = 4, height = 5, units = "in", res = 500)
+
+
+fig <- Heatmap(
+  scaled_spatialheatmap,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 4)
+)
+
+draw(fig)
+
+dev.off()
+```
+
+
+
+
+# Fig2B - Find marker genes for grouped clusters
+```{r}
+markers_nodes <-
+  FindMarkers(
+    ccs_ccsonly,
+    ident.1 = c("SA node", "Compact AV node"),
+    ident.2 = c(
+      "Lower nodal bundle",
+      "His bundle",
+      "Proximal bundle branch",
+      "Distal bundle branch",
+      "Purkinje fibers",
+      "Proliferative CCS"
+    ),
+    logfc.threshold = 0
+  )
+
+write.table(markers_nodes,
+            file = "~/fig2b_markers_sc_nodes_within_ccs_only.txt",
+            sep = '\t',
+            col.names = NA)
+
+markers_proxvcs <-
+  FindMarkers(
+    ccs_ccsonly,
+    ident.1 = c("Lower nodal bundle",
+                "His bundle",
+                "Proximal bundle branch"),
+    ident.2 = c(
+      "SA node",
+      "Compact AV node",
+      "Distal bundle branch",
+      "Purkinje fibers",
+      "Proliferative CCS"
+    ),
+    logfc.threshold = 0
+  )
+
+write.table(markers_proxvcs,
+            file = "~/fig2b_markers_sc_proxvcs_within_ccs_only.txt",
+            sep = '\t',
+            col.names = NA)
+
+markers_distvcs <-
+  FindMarkers(
+    ccs_ccsonly,
+    ident.1 = c("Distal bundle branch",
+                "Purkinje fibers"),
+    ident.2 = c(
+      "SA node",
+      "Compact AV node",
+      "Lower nodal bundle",
+      "His bundle",
+      "Proximal bundle branch",
+      "Proliferative CCS"
+    ),
+    logfc.threshold = 0
+  )
+
+write.table(markers_distvcs,
+            file = "~/fig2b_markers_sc_distvcs_within_ccs_only.txt",
+            sep = '\t',
+            col.names = NA)
+
+```
+
+# Fig2B - Dotplot for scRNAseq
+```{r}
+dotplot_genes <-
+  read.table(
+    "~/fig2b_spatial_grouped_genelist.txt"
+  )
+dotplot_genes <- dotplot_genes$V1
+```
+
+```{r}
+DotPlot(
+  ccs,
+  features = dotplot_genes,
+  #idents = rev(levels(ccs)),
+  cols = c('whitesmoke', 'deeppink4'),
+  col.min = 0,
+  col.max = 2,
+  dot.scale = 10,
+  dot.min = -0.10
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression')) &
+  guides(size = guide_legend(title = 'Percent\nExpressed')) &
+  RotatedAxis() &
+  scale_size(breaks = c(0, 20, 40, 60, 80, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      face = 'italic',
+      size = 12,
+      angle = 90,
+      vjust = 0.5,
+      hjust = 0.5
+    ),
+    axis.ticks.length.x.bottom = unit(3, 'mm'),
+    axis.ticks.length.y.left = unit(3, 'mm'),
+    axis.text.y = ggtext::element_markdown(size = 13,
+                                           colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 6),
+    legend.key.width = unit(0.2, 'cm'),
+    legend.key.height = unit(0.2, 'cm')
+  )
+```
+
+# Fig2B - Heatmap for spatial (grouped clusters)
+```{r}
+fig2b_spatialheatmap <-
+  read.table(
+    "~fig2b_spatial_grouped_wcntrls.txt"
+  )
+
+row.names(fig2b_spatialheatmap) <- fig2b_spatialheatmap$V1
+fig2b_spatialheatmap$V1 <- NULL
+spatialheatmap_labels <-
+  read.table(
+    "~/q3_ExpressionFile_wlnb_forfig2_heatmap_groups.txt"
+  )
+colnames(fig2b_spatialheatmap) <- spatialheatmap_labels
+```
+
+# Scale data
+```{r}
+scaled_fig2_spatialheatmap <-
+  as.matrix(t(scale(t(
+    fig2b_spatialheatmap
+  ))))
+scaled_fig2_spatialheatmap <- t(scaled_fig2_spatialheatmap)
+```
+
+# Color palette - blue
+```{r}
+colorRampPalette(brewer.pal(9,"Blues"))(100)
+heatmap_spatial_col = circlize::colorRamp2(c(-1.5, 0, 2), c("#F7FBFF", "#6DAFD6", "#08306B")) # used for FC>1.2, pval<0.05
+```
+
+# Fig2A - Spatial heatmap
+```{r}
+tiff("~/fig2b_groupedclusters_spatialheatmap_wcntrls.tiff", width = 10, height = 3, units = "in", res = 500)
+
+fig <- Heatmap(
+  scaled_fig2_spatialheatmap,
+  name = "Scaled\nExpression",
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_row_dend = FALSE,
+  col = heatmap_spatial_col,
+  use_raster = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  column_names_gp = gpar(fontsize = 6)
+)
+
+draw(fig)
+
+dev.off()
+```

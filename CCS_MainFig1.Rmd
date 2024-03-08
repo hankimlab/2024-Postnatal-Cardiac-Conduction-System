@@ -1,0 +1,142 @@
+---
+title: "CCS_MainFig1"
+output: html_document
+date: "2023-12-01"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Fig1B - UMAP
+```{r}
+DimPlot(ccs,
+        cols = mycolors2,
+        pt.size = 0.5) &
+  NoAxes() &
+  
+  theme(
+    text = element_text(size = 15),
+    plot.title = element_blank(),
+    panel.background = element_rect(fill = "transparent", colour = NA),
+    plot.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+```
+
+## Figure 1B_2 - cell numbers
+```{r}
+table(ccs$all)
+
+cellnum <- data.frame(group = LETTERS[1:9],
+                      value = c(17, 26, 54, 215, 176, 804, 5203, 222, 138))
+
+fig <- ggplot(cellnum, aes(x = "", y = value, fill = group)) +
+  geom_bar(stat = "identity",
+           width = 0.1,
+           color = "white") +
+  coord_polar("y", start = 0) +
+  scale_fill_manual(values = mycolors2) +
+  theme_void() +
+  NoLegend()
+```
+
+```{r}
+data.frame(group = LETTERS[1:4],
+           value = c(17, 26, 54, 388))
+
+fig <- ggplot(cellnum_small, aes(x = "", y = value, fill = group)) +
+  geom_bar(stat = "identity",
+           width = 1,
+           color = "clear") +
+  coord_polar(theta = "y", start = pi / 5) +
+  scale_fill_manual(values = c(mycolors2[1:3], "white")) +
+  theme_void() + NoLegend()
+```
+
+# Fig1D - VlnPlot of known genes
+```{r}
+VlnPlot(
+  ccs,
+  features = c(
+    "Hcn4",
+    "Cpne5",
+    "Cacna2d2",
+    "Tnnt2",
+    "Tnni1",
+    "Mb",
+    "Shox2",
+    "Tbx3",
+    "Robo1",
+    "Irx3",
+    "Gja5",
+    "Slit2",
+    "Gja1",
+    "Sema3a"
+  ),
+  fill.by = 'ident',
+  stack = TRUE,
+  flip = T,
+  cols = mycolors2
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(
+      size = 16,
+      angle = 40,
+      vjust = 1,
+      hjust = 1
+    ),
+    axis.ticks.length.x = unit(0.1, "cm"),
+    axis.ticks.length.y = unit(0.1, "cm"),
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(size = 16),
+    strip.text = element_text(size = 18, hjust = 0, face = "italic")
+  ) +
+  NoLegend()
+```
+
+
+# Correlation analysis between sc vs spatial - use all common genes
+```{r}
+ccs_avg <- AverageExpression(ccs)
+```
+
+# After making matrix with genes desired
+```{r}
+scst_corr <-
+  read.table("~/nonlog_average_scst_expressionfile_alloverlappinggenes.txt",
+             header = T)
+scst_corr <- cor(scst_corr)
+
+library(corrplot)
+```
+
+# After rearranging correlation constants, re-read table
+```{r}
+scst_corr_reorg <-
+  read.table("~/nonlog_average_2_scst_correlation_reorg.txt",
+             header = T)
+rownames(scst_corr_reorg) <- scst_corr_reorg$X
+scst_corr_reorg$X <- NULL
+
+scst_corr_reorg <- scale(t(scst_corr_reorg))
+scst_corr_reorg <- t(scst_corr_reorg)
+
+label = read.table("~/scst_expressionfile_alloverlappinggenes_labels.txt")
+
+label = label[1:25]
+rownames(scst_corr_reorg) <- label
+
+write.table(
+  scst_corr_reorg,
+  "~/nonlog_average_3_scst_correlation_reorg_scaled.txt",
+  sep = '\t',
+  col.names = NA
+)
+```
