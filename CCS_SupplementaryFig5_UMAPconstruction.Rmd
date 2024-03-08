@@ -1,0 +1,254 @@
+---
+title: "CCS_SupplementaryFig5_UMAPconstruction"
+output: html_document
+date: "2023-08-31"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Subcluster LNB-HIS-PBB
+```{r}
+Idents(ccs) <- ccs$global
+subset_prox_lnb2pbb <- subset(ccs, idents = "Proximal CCS")
+subset_prox_lnb2pbb <- NormalizeData(subset_prox_lnb2pbb)
+subset_prox_lnb2pbb <- FindVariableFeatures(subset_prox_lnb2pbb)
+subset_prox_lnb2pbb <- ScaleData(subset_prox_lnb2pbb, vars.to.regress = c('nCount_RNA', 'percent.mito'))
+subset_prox_lnb2pbb <- RunPCA(subset_prox_lnb2pbb)
+fig <- ElbowPlot(subset_prox_lnb2pbb, ndims = 50)
+```
+
+# Find appropriate clusters for lnb-pbb
+```{r}
+subset_prox_lnb2pbb <- RunUMAP(subset_prox_lnb2pbb, dims = 1:10)
+subset_prox_lnb2pbb <- FindNeighbors(subset_prox_lnb2pbb, dims = 1:10)
+subset_prox_lnb2pbb <- FindClusters(subset_prox_lnb2pbb, resolution = 0.6)
+DimPlot(subset_prox_lnb2pbb) & NoAxes()
+```
+
+# Re-label lnb-pbb clusters
+```{r}
+subset_prox_lnb2pbb <-
+  RenameIdents(
+    subset_prox_lnb2pbb,
+    "3" = "Lower nodal bundle",
+    "2" = "His bundle 1",
+    "1" = "His bundle 2",
+    "0" = "Proximal bundle branch"
+  )
+```
+
+# Obtain cell ids from from all subsetted data
+```{r}
+cells_san <- WhichCells(subset_nodes, idents = "SA node")
+cells_cavn <- WhichCells(subset_nodes, idents = "Compact AV node")
+cells_lnb <- WhichCells(subset_prox_lnb2pbb, idents = "Lower nodal bundle")
+cells_his1 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 1")
+cells_his2 <- WhichCells(subset_prox_lnb2pbb, idents = "His bundle 2")
+cells_pbb <- WhichCells(subset_prox_lnb2pbb, idents = "Proximal bundle branch")
+cells_dbb <- WhichCells(subset_prox, idents = "Distal bundle branch")
+cells_pf <- WhichCells(ccs, idents = "Purkinje fibers")
+cells_prolif <- WhichCells(ccs, idents = "Proliferative AVCS")
+cells_cc <- WhichCells(ccs, idents = "Contractile myocytes")
+```
+
+# Add to metadata
+```{r}
+ccs <- SetIdent(ccs, value = "Contractile myocytes", cells = cells_cc)
+ccs <- SetIdent(ccs, value = "Proliferative CCS", cells = cells_prolif)
+ccs <- SetIdent(ccs, value = "Purkinje fibers", cells = cells_pf)
+ccs <- SetIdent(ccs, value = "Distal bundle branch", cells = cells_dbb)
+ccs <- SetIdent(ccs, value = "Proximal bundle branch", cells = cells_pbb)
+ccs <- SetIdent(ccs, value = "His bundle 2", cells = cells_his2)
+ccs <- SetIdent(ccs, value = "His bundle 1", cells = cells_his1)
+ccs <- SetIdent(ccs, value = "Lower nodal bundle", cells = cells_lnb)
+ccs <- SetIdent(ccs, value = "Compact AV node", cells = cells_avn)
+ccs <- SetIdent(ccs, value = "SA node", cells = cells_san)
+
+ccs$sub_all <- Idents(ccs)
+```
+
+
+# Global CCS - UMAP
+```{r}
+DimPlot(
+  ccs,
+  group.by = 'global',
+  cols = c('#7c7cc1', "#77c9e9", "#4c4c4c", "#bbbbbb"),
+  pt.size = 0.5
+) &
+  NoAxes() &
+  theme(
+    text = element_text(size = 15),
+    plot.title = element_blank(),
+    legend.position = 'left'
+  )
+```
+
+# sFigXA - global CCS - VlnPlot
+```{r}
+VlnPlot(
+  ccs,
+  features = c(
+    "Hcn4",
+    "Irx3",
+    "Gja5",
+    "Slit2",
+    "Tbx3",
+    "Robo1",
+    "Cacna2d2",
+    "Tnnt2",
+    "Mki67"
+  ),
+  stack = T,
+  flip = T,
+  group.by = 'global',
+  cols = c('#7c7cc1', "#77c9e9", "#4c4c4c", "#bbbbbb"),
+  fill.by = 'ident',
+  pt.size = 0.5
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  NoAxes() &
+  theme(strip.text.y = element_text(size = 14, hjust = 0, face = 'italic'),
+        plot.title = element_blank())
+```
+
+# Proximal CCS - UMAP
+```{r}
+DimPlot(
+  subset_prox,
+  group.by = 'sub_prox',
+  cols = c('#661100', "#f7a92b", "#77c9e9"),
+  pt.size = 1.5
+) &
+  NoAxes() &
+  
+  theme(text = element_text(size = 15),
+        plot.title = element_blank())
+```
+
+# Proximal CCS - VlnPlot
+```{r}
+VlnPlot(
+  subset_prox,
+  features = c(
+    "Gja1",
+    "Gja5",
+    "Irx3",
+    "Scn5a",
+    "Etv1",
+    "Tbx3",
+    "Myl2",
+    "Myl3",
+    "Myl4",
+    "Myl7"
+  ),
+  stack = T,
+  flip = T,
+  group.by = 'sub_prox',
+  cols = c('#661100', "#f7a92b", "#77c9e9"),
+  fill.by = 'ident',
+  pt.size = 0.5
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  NoAxes() &
+  theme(strip.text.y = element_text(size = 13, hjust = 0, face = 'italic'),
+        plot.title = element_blank())
+```
+
+# Nodes CCS - UMAP
+```{r}
+DimPlot(
+  subset_nodes,
+  group.by = 'seurat_clusters',
+  cols = c('#661100', "#e8601c"),
+  pt.size = 1.5
+) &
+  NoAxes() &
+  
+  theme(text = element_text(size = 15),
+        plot.title = element_blank())
+```
+
+# Nodes CCS - VlnPlot
+```{r}
+
+VlnPlot(
+  subset_nodes,
+  features = c("Gjd3",
+               "Hcn4",
+               "Tbx3",
+               "Nkx2-5",
+               "Shox2",
+               "Tbx18"),
+  stack = T,
+  flip = T,
+  group.by = 'seurat_clusters',
+  cols = c('#661100', "#e8601c"),
+  fill.by = 'ident',
+  pt.size = 0.5
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  NoAxes() &
+  theme(strip.text.y = element_text(size = 19, hjust = 0, face = 'italic'),
+        plot.title = element_blank())
+
+```
+
+# LNB-HIS-PBB CCS - UMAP
+```{r}
+DimPlot(
+  subset_prox_lnb2pbb,
+  group.by = 'lnb2pbb',
+  cols = c('#DD561c', "#f1932D", "#F6c141", "#3dbf3d"),
+  pt.size = 1.5
+) &
+  NoAxes() &
+  
+  theme(text = element_text(size = 15),
+        plot.title = element_blank())
+```
+
+# LNB-HIS-PBB CCS - VlnPlot
+```{r}
+VlnPlot(
+  subset_prox_lnb2pbb,
+  features = c("Irx3",
+               "Gja5",
+               "Slit2",
+               "Gja1",
+               "Tbx3",
+               "Myl2",
+               "Myl7",
+               "Robo1"),
+  stack = T,
+  flip = T,
+  group.by = 'lnb2pbb',
+  cols = c('#DD561c', "#f1932D", "#F6c141", "#3dbf3d"),
+  fill.by = 'ident',
+  pt.size = 0.5
+) &
+  stat_summary(
+    fun = mean,
+    geom = 'crossbar',
+    width = 0.2,
+    colour = "black"
+  ) &
+  NoAxes() &
+  theme(strip.text.y = element_text(size = 12, hjust = 0, face = 'italic'),
+        plot.title = element_blank())
+```
